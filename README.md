@@ -17,12 +17,12 @@ Formatos aceitos: JPEG, PNG, WebP e HEIC (convertido para JPEG via `heic-convert
 
 ## Stack
 
-| Camada | Tecnologias |
-|--------|-------------|
-| Runtime | Node 24, Yarn 4, TypeScript |
-| Backend | Fastify, PostgreSQL (`pg`), rate limit, multipart |
-| Imagens | sharp, heic-convert |
-| Frontend | React 19, React Router, styled-components, Vite |
+| Camada      | Tecnologias                                                           |
+| ----------- | --------------------------------------------------------------------- |
+| Runtime     | Node 24, Yarn 4, TypeScript                                           |
+| Backend     | Fastify, PostgreSQL (`pg`), rate limit, multipart                     |
+| Imagens     | sharp, heic-convert                                                   |
+| Frontend    | React 19, React Router, styled-components, Vite                       |
 | Arquitetura | Clean Architecture (`domain` → `infra` → `presentation` + `frontend`) |
 
 ## Estrutura
@@ -48,12 +48,12 @@ PORT=3000
 ADMIN_PASSWORD=sua-senha-segura
 ```
 
-| Variável | Obrigatória | Descrição |
-|----------|-------------|-----------|
-| `DATABASE_URL` | sim | Conexão PostgreSQL |
-| `UPLOADS_DIR` | não | Pasta de fotos **relativa ao projeto** (padrão: `data` → `./data/display`, `./data/thumb`). Não use `/data/...` (vai para a raiz do Linux). |
-| `PORT` | não | Porta HTTP (padrão: `3000`) |
-| `ADMIN_PASSWORD` | não | Senha do `/admin` (padrão: `grao-dev`) |
+| Variável         | Obrigatória | Descrição                                                                                                                                   |
+| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | sim         | Conexão PostgreSQL                                                                                                                          |
+| `UPLOADS_DIR`    | não         | Pasta de fotos **relativa ao projeto** (padrão: `data` → `./data/display`, `./data/thumb`). Não use `/data/...` (vai para a raiz do Linux). |
+| `PORT`           | não         | Porta HTTP (padrão: `3000`)                                                                                                                 |
+| `ADMIN_PASSWORD` | não         | Senha do `/admin` (padrão: `grao-dev`)                                                                                                      |
 
 ## Desenvolvimento
 
@@ -67,12 +67,12 @@ Abra [http://localhost:3000](http://localhost:3000). Admin: [http://localhost:30
 
 ## Scripts
 
-| Comando | Descrição |
-|---------|-----------|
-| `yarn dev` | Servidor com hot reload (API + Vite SSR) |
-| `yarn build` | Build de produção (client, SSR e servidor) |
-| `yarn start` | Roda `dist/presentation/app/index.js` |
-| `yarn db:migrate` | Aplica migrations pendentes |
+| Comando           | Descrição                                  |
+| ----------------- | ------------------------------------------ |
+| `yarn dev`        | Servidor com hot reload (API + Vite SSR)   |
+| `yarn build`      | Build de produção (client, SSR e servidor) |
+| `yarn start`      | Roda `dist/presentation/app/index.js`      |
+| `yarn db:migrate` | Aplica migrations pendentes                |
 
 ## Produção
 
@@ -108,14 +108,14 @@ docker compose up -d --build
 
 ## API (resumo)
 
-| Rota | Auth | Uso |
-|------|------|-----|
-| `GET /api/photos` | — | Feed público (só publicadas) |
-| `POST /api/photos` | Bearer | Upload |
-| `GET /api/admin/photos` | Bearer | Listagem admin (`filter=published\|archived`) |
-| `PATCH /api/admin/photos/:id` | Bearer | Legenda e/ou arquivar |
-| `DELETE /api/admin/photos/:id` | Bearer | Exclusão |
-| `POST /api/upload/verify` | Bearer | Valida senha no login |
+| Rota                           | Auth   | Uso                                           |
+| ------------------------------ | ------ | --------------------------------------------- |
+| `GET /api/photos`              | —      | Feed público (só publicadas)                  |
+| `POST /api/photos`             | Bearer | Upload                                        |
+| `GET /api/admin/photos`        | Bearer | Listagem admin (`filter=published\|archived`) |
+| `PATCH /api/admin/photos/:id`  | Bearer | Legenda e/ou arquivar                         |
+| `DELETE /api/admin/photos/:id` | Bearer | Exclusão                                      |
+| `POST /api/upload/verify`      | Bearer | Valida senha no login                         |
 
 ## Licença
 
