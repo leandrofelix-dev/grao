@@ -11,8 +11,11 @@ import { env } from '../config/env.js';
 import { toJpegBufferIfHeic } from './heic-decode.js';
 import { resolveImageMime } from './image-mime.js';
 
-const DISPLAY_MAX = 2000;
-const THUMB_WIDTH = 400;
+/** Feed em até ~1120px; 1600 cobre retina no viewer. */
+const DISPLAY_MAX = 1600;
+const THUMB_WIDTH = 480;
+const DISPLAY_JPEG_QUALITY = 80;
+const THUMB_JPEG_QUALITY = 76;
 
 async function assertNoSensitiveMetadata(buffer: Buffer): Promise<void> {
   const gps = await exifr.gps(buffer);
@@ -38,15 +41,23 @@ async function encodeVariant(
   input: Buffer,
   width: number,
   outputPath: string,
+  quality: number,
 ): Promise<{ width: number; height: number }> {
-  const pipeline = sharp(input).rotate().resize({
-    width,
-    fit: 'inside',
-    withoutEnlargement: true,
-  });
+  const pipeline = sharp(input)
+    .rotate()
+    .resize({
+      width,
+      fit: 'inside',
+      withoutEnlargement: true,
+    });
 
   const { data, info } = await pipeline
-    .jpeg({ quality: 85, mozjpeg: true })
+    .jpeg({
+      quality,
+      mozjpeg: true,
+      progressive: true,
+      chromaSubsampling: '4:2:0',
+    })
     .toBuffer({ resolveWithObject: true });
 
   await writeFile(outputPath, data);
@@ -73,8 +84,13 @@ export class SharpImageProcessor implements ImageProcessor {
     const displayPath = join(displayDir, `${id}.jpg`);
     const thumbPath = join(thumbDir, `${id}.jpg`);
 
-    const display = await encodeVariant(raster, DISPLAY_MAX, displayPath);
-    await encodeVariant(raster, THUMB_WIDTH, thumbPath);
+    const display = await encodeVariant(
+      raster,
+      DISPLAY_MAX,
+      displayPath,
+      DISPLAY_JPEG_QUALITY,
+    );
+    await encodeVariant(raster, THUMB_WIDTH, thumbPath, THUMB_JPEG_QUALITY);
 
     return {
       id,

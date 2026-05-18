@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { getUploadToken, uploadPhotos } from '../lib/api.js';
 import { createId } from '../lib/create-id.js';
+import { optimizeImageForUpload } from '../lib/optimize-image.js';
 import { metaText } from '../theme/textStyles.js';
 
 const Form = styled.form`
@@ -148,6 +149,7 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
 
   const queueRef = useRef(queue);
   queueRef.current = queue;
@@ -158,29 +160,37 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
     };
   }, []);
 
-  const addFiles = useCallback((incoming: FileList | File[]) => {
+  const addFiles = useCallback(async (incoming: FileList | File[]) => {
     const list = Array.from(incoming).filter(isValidImage);
     if (list.length === 0) {
       setError('Selecione imagens (JPEG, PNG, WebP ou HEIC).');
       return;
     }
 
-    setQueue((prev) => {
-      const seen = new Set(prev.map((item) => fileKey(item.file)));
-      const added: QueueItem[] = [];
-      for (const file of list) {
-        const key = fileKey(file);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        added.push({
-          id: createId(),
-          file,
-          preview: URL.createObjectURL(file),
-        });
-      }
-      return [...prev, ...added];
-    });
+    setOptimizing(true);
     setError(null);
+
+    try {
+      const optimized = await Promise.all(list.map(optimizeImageForUpload));
+
+      setQueue((prev) => {
+        const seen = new Set(prev.map((item) => fileKey(item.file)));
+        const added: QueueItem[] = [];
+        for (const file of optimized) {
+          const key = fileKey(file);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          added.push({
+            id: createId(),
+            file,
+            preview: URL.createObjectURL(file),
+          });
+        }
+        return [...prev, ...added];
+      });
+    } finally {
+      setOptimizing(false);
+    }
   }, []);
 
   const removeItem = useCallback((id: string) => {
@@ -280,6 +290,8 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
               </ThumbWrap>
             ))}
           </ThumbGrid>
+        ) : optimizing ? (
+          'otimizando fotos…'
         ) : (
           'arraste ou escolha fotos'
         )}
@@ -313,7 +325,7 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
 
       {error && <ErrorMsg>{error}</ErrorMsg>}
 
-      <Submit type="submit" disabled={loading || count === 0}>
+      <Submit type="submit" disabled={loading || optimizing || count === 0}>
         {loading
           ? progress
             ? `enviando ${progress.done}/${progress.total}…`

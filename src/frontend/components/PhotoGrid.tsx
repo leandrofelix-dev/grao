@@ -107,7 +107,7 @@ function PhotoCell({
 
   useEffect(() => {
     if (imgRef.current?.complete) setLoaded(true);
-  }, [photo.displayUrl]);
+  }, [photo.thumbUrl]);
 
   return (
     <Cell
@@ -119,7 +119,7 @@ function PhotoCell({
         {!loaded && <Placeholder />}
         <Image
           ref={imgRef}
-          src={photo.displayUrl}
+          src={photo.thumbUrl}
           alt={photo.caption ?? ''}
           $loaded={loaded}
           loading="lazy"
