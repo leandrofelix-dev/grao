@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { getUploadToken, uploadPhotos } from '../lib/api.js';
 import { createId } from '../lib/create-id.js';
+import { createPreviewUrl } from '../lib/create-preview-url.js';
+import { isHeicFile } from '../lib/image-file.js';
 import { optimizeImageForUpload } from '../lib/optimize-image.js';
 import { metaText } from '../theme/textStyles.js';
 
@@ -39,12 +41,25 @@ const ThumbWrap = styled.div`
   position: relative;
   aspect-ratio: 1;
   overflow: hidden;
+  background: ${({ theme }) => theme.colors.border};
 `;
 
 const Thumb = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+`;
+
+const HeicPlaceholder = styled.span`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.colors.muted};
 `;
 
 const RemoveBtn = styled.button`
@@ -121,7 +136,8 @@ const ALLOWED = new Set([
 interface QueueItem {
   id: string;
   file: File;
-  preview: string;
+  /** object URL; vazio se a miniatura HEIC não pôde ser gerada */
+  preview: string | null;
 }
 
 function isValidImage(f: File): boolean {
@@ -156,7 +172,9 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
 
   useEffect(() => {
     return () => {
-      for (const item of queueRef.current) URL.revokeObjectURL(item.preview);
+      for (const item of queueRef.current) {
+        if (item.preview) URL.revokeObjectURL(item.preview);
+      }
     };
   }, []);
 
@@ -172,18 +190,21 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
 
     try {
       const optimized = await Promise.all(list.map(optimizeImageForUpload));
+      const previews = await Promise.all(optimized.map(createPreviewUrl));
 
       setQueue((prev) => {
         const seen = new Set(prev.map((item) => fileKey(item.file)));
         const added: QueueItem[] = [];
-        for (const file of optimized) {
+        for (let i = 0; i < optimized.length; i++) {
+          const file = optimized[i]!;
           const key = fileKey(file);
           if (seen.has(key)) continue;
           seen.add(key);
+          const preview = previews[i] || null;
           added.push({
             id: createId(),
             file,
-            preview: URL.createObjectURL(file),
+            preview,
           });
         }
         return [...prev, ...added];
@@ -196,7 +217,7 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
   const removeItem = useCallback((id: string) => {
     setQueue((prev) => {
       const item = prev.find((i) => i.id === id);
-      if (item) URL.revokeObjectURL(item.preview);
+      if (item?.preview) URL.revokeObjectURL(item.preview);
       return prev.filter((i) => i.id !== id);
     });
   }, []);
@@ -232,7 +253,9 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
         return;
       }
 
-      for (const item of queue) URL.revokeObjectURL(item.preview);
+      for (const item of queue) {
+        if (item.preview) URL.revokeObjectURL(item.preview);
+      }
       setQueue([]);
       setCaption('');
       onUploaded();
@@ -276,7 +299,13 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
           <ThumbGrid>
             {queue.map((item) => (
               <ThumbWrap key={item.id}>
-                <Thumb src={item.preview} alt="" />
+                {item.preview ? (
+                  <Thumb src={item.preview} alt="" />
+                ) : (
+                  <HeicPlaceholder>
+                    {isHeicFile(item.file) ? 'heic' : '…'}
+                  </HeicPlaceholder>
+                )}
                 <RemoveBtn
                   type="button"
                   aria-label="Remover"

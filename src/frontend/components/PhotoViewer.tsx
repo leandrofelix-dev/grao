@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { keyframes } from 'styled-components';
 import type { PhotoView } from '../../domain/dto/photo-view.js';
@@ -92,21 +92,47 @@ const Frame = styled.div`
   width: 100%;
 `;
 
-const ImageWrap = styled.div`
+const shimmer = keyframes`
+  0% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.65;
+  }
+  100% {
+    opacity: 0.35;
+  }
+`;
+
+const ImageStage = styled.div<{ $ratio: number }>`
+  position: relative;
   width: 100%;
-  display: flex;
-  justify-content: center;
+  max-width: min(92vw, 420px);
+  aspect-ratio: ${({ $ratio }) => $ratio};
+  max-height: min(72vh, 720px);
+  margin: 0 auto;
+  overflow: hidden;
+  background: ${({ theme }) => theme.colors.border};
   touch-action: pan-y;
 `;
 
-const Image = styled.img`
-  max-width: 100%;
-  max-height: min(72vh, 720px);
-  width: auto;
-  height: auto;
+const Placeholder = styled.div`
+  position: absolute;
+  inset: 0;
+  background: ${({ theme }) => theme.colors.border};
+  animation: ${shimmer} 1.6s ease-in-out infinite;
+`;
+
+const Image = styled.img<{ $loaded: boolean }>`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  opacity: ${({ $loaded }) => ($loaded ? 1 : 0)};
+  transition: opacity 0.35s ease;
 `;
 
 const Meta = styled.div`
@@ -157,6 +183,49 @@ interface PhotoViewerProps {
   index: number;
   onClose: () => void;
   onIndexChange: (index: number) => void;
+}
+
+function ViewerImage({
+  photo,
+  ratio,
+  onTouchStart,
+  onTouchEnd,
+}: {
+  photo: PhotoView;
+  ratio: number;
+  onTouchStart: (e: React.TouchEvent) => void;
+  onTouchEnd: (e: React.TouchEvent) => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    setLoaded(false);
+  }, [photo.id]);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) setLoaded(true);
+  }, [photo.displayUrl]);
+
+  return (
+    <ImageStage
+      $ratio={ratio}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {!loaded && <Placeholder aria-hidden />}
+      <Image
+        ref={imgRef}
+        key={photo.id}
+        src={photo.displayUrl}
+        alt={photo.caption ?? ''}
+        $loaded={loaded}
+        draggable={false}
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+      />
+    </ImageStage>
+  );
 }
 
 export function PhotoViewer({
@@ -215,6 +284,10 @@ export function PhotoViewer({
   if (!photo) return null;
 
   const dateLabel = formatPhotoDate(photo.createdAt);
+  const ratio =
+    photo.width > 0 && photo.height > 0
+      ? photo.width / photo.height
+      : 1;
 
   return createPortal(
     <Overlay role="dialog" aria-modal="true" aria-label="Visualização da foto">
@@ -243,14 +316,12 @@ export function PhotoViewer({
 
       <Content>
         <Frame>
-          <ImageWrap onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-            <Image
-              key={photo.id}
-              src={photo.displayUrl}
-              alt={photo.caption ?? ''}
-              draggable={false}
-            />
-          </ImageWrap>
+          <ViewerImage
+            photo={photo}
+            ratio={ratio}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+          />
 
           <Meta>
             <MetaText>

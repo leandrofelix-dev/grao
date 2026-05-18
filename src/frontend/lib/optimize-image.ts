@@ -1,17 +1,9 @@
+import { isHeicFile } from './image-file.js';
+
 const MAX_EDGE = 2048;
 const JPEG_QUALITY = 0.82;
 /** Abaixo disso e já JPEG, só recompacta se a maior borda passar do limite. */
 const SMALL_FILE_BYTES = 350_000;
-
-function isHeic(file: File): boolean {
-  const name = file.name.toLowerCase();
-  return (
-    name.endsWith('.heic') ||
-    name.endsWith('.heif') ||
-    file.type === 'image/heic' ||
-    file.type === 'image/heif'
-  );
-}
 
 function outputName(original: string): string {
   const base = original.replace(/\.[^.]+$/i, '') || 'foto';
@@ -23,7 +15,7 @@ function outputName(original: string): string {
  * HEIC segue cru — o servidor converte com heic-convert + sharp.
  */
 export async function optimizeImageForUpload(file: File): Promise<File> {
-  if (isHeic(file)) return file;
+  if (isHeicFile(file)) return file;
   if (!file.type.startsWith('image/')) return file;
 
   try {
