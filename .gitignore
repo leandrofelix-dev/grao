@@ -10,4 +10,5 @@ dist/
 .env.local
 data/
 *.log
+logs/
 .DS_Store

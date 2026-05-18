@@ -76,7 +76,27 @@ Abra [http://localhost:3000](http://localhost:3000). Admin: [http://localhost:30
 
 ## Produção
 
-Com Docker (ajuste `DATABASE_URL` no `.env`):
+### PM2
+
+Requisitos: Node 24, `yarn build`, `.env` na raiz do projeto.
+
+```bash
+yarn build
+yarn db:migrate
+
+# instalar PM2 globalmente (uma vez)
+npm install -g pm2
+
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+pm2 startup   # opcional: subir após reboot
+```
+
+Comandos úteis: `pm2 status`, `pm2 logs grao`, `pm2 reload grao`, `pm2 stop grao`.
+
+### Docker
+
+Ajuste `DATABASE_URL` no `.env`:
 
 ```bash
 docker compose up -d --build
