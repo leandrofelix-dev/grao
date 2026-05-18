@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { getUploadToken, uploadPhotos } from '../lib/api.js';
+import { createId } from '../lib/create-id.js';
 import { metaText } from '../theme/textStyles.js';
 
 const Form = styled.form`
@@ -172,7 +173,7 @@ export function AdminUploadForm({ onUploaded, onAuthLost }: AdminUploadFormProps
         if (seen.has(key)) continue;
         seen.add(key);
         added.push({
-          id: crypto.randomUUID(),
+          id: createId(),
           file,
           preview: URL.createObjectURL(file),
         });

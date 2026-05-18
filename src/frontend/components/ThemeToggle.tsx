@@ -44,6 +44,7 @@ export function ThemeToggle() {
     <Btn
       type="button"
       onClick={toggleMode}
+      suppressHydrationWarning
       aria-label={mode === 'dark' ? 'Ativar modo claro' : 'Ativar modo noturno'}
     >
       {mode === 'dark' ? <SunIcon /> : <MoonIcon />}

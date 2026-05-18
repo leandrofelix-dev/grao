@@ -30,9 +30,12 @@ function applyDocumentMode(mode: ColorMode) {
 }
 
 export function ColorModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ColorMode>(() =>
-    typeof document !== 'undefined' ? readInitialColorMode() : 'light',
-  );
+  // SSR e primeira pintura do cliente usam o mesmo valor (evita hydration mismatch).
+  const [mode, setModeState] = useState<ColorMode>('light');
+
+  useEffect(() => {
+    setModeState(readInitialColorMode());
+  }, []);
 
   useEffect(() => {
     applyDocumentMode(mode);

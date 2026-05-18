@@ -20,7 +20,13 @@ export async function createApp(
 
   const app = Fastify({ logger: true });
 
-  await app.register(helmet, { contentSecurityPolicy: false });
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    // HTTP (ex.: IP Tailscale) não é "trustworthy origin" — headers COOP/OAC geram avisos.
+    crossOriginOpenerPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    originAgentCluster: false,
+  });
 
   // Só rotas que declaram rateLimit no config (upload, verify).
   // Limite global contava cada /uploads/* e estourava ao rolar o feed.
