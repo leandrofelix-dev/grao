@@ -22,17 +22,20 @@ export async function registerVite(
 
   const template = readFileSync(join(appRoot, 'index.html'), 'utf-8');
 
-  app.get('*', async (request: FastifyRequest, reply: FastifyReply) => {
-    const url = request.url;
-    if (url.startsWith('/api') || url.startsWith('/uploads')) return;
+  app.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const pathname = request.url.split('?')[0] ?? '';
+
+    if (pathname.startsWith('/api') || pathname.startsWith('/uploads')) {
+      return reply.code(404).send({ error: 'Not found' });
+    }
 
     try {
-      const ssrData = await loadSsrPayload(url, container);
-      const htmlTemplate = await vite.transformIndexHtml(url, template);
+      const ssrData = await loadSsrPayload(pathname, container);
+      const htmlTemplate = await vite.transformIndexHtml(pathname, template);
       const { renderPage } = await vite.ssrLoadModule(
         '/src/frontend/entry-server.tsx',
       );
-      const { html, styles } = renderPage(url, ssrData);
+      const { html, styles } = renderPage(pathname, ssrData);
       reply.type('text/html').send(buildHtml(htmlTemplate, html, styles, ssrData));
     } catch (err) {
       vite.ssrFixStacktrace(err as Error);

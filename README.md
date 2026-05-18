@@ -43,7 +43,7 @@ Copie `.env.example` para `.env`:
 
 ```env
 DATABASE_URL=postgresql://usuario:senha@host:5432/grao
-UPLOADS_DIR=./data/uploads
+UPLOADS_DIR=data
 PORT=3000
 ADMIN_PASSWORD=sua-senha-segura
 ```
@@ -51,7 +51,7 @@ ADMIN_PASSWORD=sua-senha-segura
 | Variável | Obrigatória | Descrição |
 |----------|-------------|-----------|
 | `DATABASE_URL` | sim | Conexão PostgreSQL |
-| `UPLOADS_DIR` | não | Pasta de uploads (padrão: `./data/uploads`) |
+| `UPLOADS_DIR` | não | Pasta de fotos **relativa ao projeto** (padrão: `data` → `./data/display`, `./data/thumb`). Não use `/data/...` (vai para a raiz do Linux). |
 | `PORT` | não | Porta HTTP (padrão: `3000`) |
 | `ADMIN_PASSWORD` | não | Senha do `/admin` (padrão: `grao-dev`) |
 
@@ -80,11 +80,13 @@ Abra [http://localhost:3000](http://localhost:3000). Admin: [http://localhost:30
 
 Requisitos: Node 24, `yarn build`, `.env` na raiz do projeto.
 
+No servidor o projeto costuma ficar em `/opt/workspace/pm2/grao`. O `ecosystem.config.cjs` usa `__dirname` como raiz e grava fotos em **`/opt/workspace/pm2/grao/data`** (`display/` e `thumb/`).
+
 ```bash
+cd /opt/workspace/pm2/grao
 yarn build
 yarn db:migrate
 
-# instalar PM2 globalmente (uma vez)
 npm install -g pm2
 
 pm2 start ecosystem.config.cjs --env production
@@ -92,7 +94,9 @@ pm2 save
 pm2 startup   # opcional: subir após reboot
 ```
 
-Comandos úteis: `pm2 status`, `pm2 logs grao`, `pm2 reload grao`, `pm2 stop grao`.
+Confira nos logs: `Project root` e `Uploads directory` devem apontar para `/opt/workspace/pm2/grao` e `.../grao/data`.
+
+Comandos úteis: `pm2 status`, `pm2 logs grao`, `pm2 reload grao --update-env`, `pm2 stop grao`.
 
 ### Docker
 

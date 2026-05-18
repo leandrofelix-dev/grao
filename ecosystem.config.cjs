@@ -1,6 +1,8 @@
 const path = require('node:path');
 
+// Raiz do repo (no servidor: /opt/workspace/pm2/grao)
 const root = __dirname;
+const uploadsDir = path.join(root, 'data');
 
 /** @type {import('pm2').StartOptions[]} */
 const apps = [
@@ -20,9 +22,11 @@ const apps = [
     error_file: path.join(root, 'logs/pm2-error.log'),
     env: {
       NODE_ENV: 'development',
+      UPLOADS_DIR: uploadsDir,
     },
     env_production: {
       NODE_ENV: 'production',
+      UPLOADS_DIR: uploadsDir,
     },
   },
 ];

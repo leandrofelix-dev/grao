@@ -21,6 +21,8 @@ async function main() {
 
   await app.listen({ port: env.port, host: '0.0.0.0' });
   console.log(`Grão listening on http://localhost:${env.port}`);
+  console.log(`Project root: ${env.projectRoot}`);
+  console.log(`Uploads directory: ${env.uploadsDir}`);
 }
 
 main().catch((err) => {

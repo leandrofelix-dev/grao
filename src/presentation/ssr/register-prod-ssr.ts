@@ -3,12 +3,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { SsrPayload } from '../../domain/dto/photo-view.js';
+import { env } from '../../infra/config/env.js';
 import type { AppContainer } from '../app/container.js';
 import { buildHtml } from './html.js';
 import { loadSsrPayload } from './load-ssr-payload.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const appRoot = join(__dirname, '../../..');
+
+const PUBLIC_ROOT_FILES = ['favicon.svg', 'grao.svg', 'grao-iso.svg'] as const;
 
 export async function registerProdSsr(
   app: FastifyInstance,
@@ -27,20 +30,42 @@ export async function registerProdSsr(
     'utf-8',
   );
 
+  const clientRoot = join(appRoot, 'dist/client');
+
+  // Só /assets/* — não usar prefix "/" ou /uploads/* cai no dist/client e dá 404.
   await app.register(import('@fastify/static'), {
-    root: join(appRoot, 'dist/client'),
-    prefix: '/',
+    root: join(clientRoot, 'assets'),
+    prefix: '/assets/',
     decorateReply: false,
-    index: false,
   });
 
-  app.get('*', async (request: FastifyRequest, reply: FastifyReply) => {
-    const url = request.url;
-    if (url.startsWith('/api') || url.startsWith('/uploads')) return;
+  for (const file of PUBLIC_ROOT_FILES) {
+    app.get(`/${file}`, async (_request, reply) => {
+      return reply.sendFile(file, clientRoot);
+    });
+  }
+
+  // Garante precedência do diretório de uploads sobre o fallback SSR.
+  await app.register(import('@fastify/static'), {
+    root: env.uploadsDir,
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
+
+  app.setNotFoundHandler(async (request: FastifyRequest, reply: FastifyReply) => {
+    const pathname = request.url.split('?')[0] ?? '';
+
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/uploads') ||
+      pathname.startsWith('/assets')
+    ) {
+      return reply.code(404).send({ error: 'Not found' });
+    }
 
     try {
-      const ssrData = await loadSsrPayload(url, container);
-      const { html, styles } = renderPage(url, ssrData);
+      const ssrData = await loadSsrPayload(pathname, container);
+      const { html, styles } = renderPage(pathname, ssrData);
       reply.type('text/html').send(buildHtml(template, html, styles, ssrData));
     } catch (err) {
       request.log.error(err);
